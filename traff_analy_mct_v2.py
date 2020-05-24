@@ -3,10 +3,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 from IPython.display import display, HTML
-from tkinter import *
 from tabulate import tabulate
+from tkinter import *
 import tkinter as tk					 
 from tkinter import ttk 
+from tkinter import filedialog as fd
 
 class Traff_Analy():
     def __init__(self):
@@ -23,10 +24,19 @@ class Traff_Analy():
 
 
     def capture(self):
+        filetypes=(("Capturas", "*.pcap .pcapng"), ("All files", "*.*")) 
+        cap_file = fd.askopenfilename(filetypes=filetypes)
+        print(cap_file)
+        answer = messagebox.askokcancel("Análise de Captura","A captura será analisada e levará alguns segundos. \n\nPor favor aguarde. \n\nPressione 'OK' para continuar.")
         #captura = NFStreamer(source='./Pcap_Files/webex-matheus.pcapng').to_pandas()
-        captura = NFStreamer(source='/home/igor/UMinho/MCT/captura/blackboard_03-04.pcapng').to_pandas()
-        #captura = NFStreamer(source='/home/igor/UMinho/MCT/mct_tp3/test.pcap').to_pandas()
-        self.data = pd.DataFrame(captura) # converte em dataframe
+        if answer == True:
+
+            captura = NFStreamer(source=str(cap_file)).to_pandas()
+            #captura = NFStreamer(source='/home/igor/UMinho/MCT/mct_tp3/test.pcap').to_pandas()
+            self.data = pd.DataFrame(captura) # converte em dataframe
+        
+        else:
+            return
 
 
     def filtering(self):
@@ -185,7 +195,7 @@ class Traff_Analy():
         #plt.tight_layout()
 
         plt.axis('equal')
-        plt.title('TP - QoS / Category Graph')
+        plt.title('TP - MCT / Category Graph')
         plt.show()
 
     def plot_graphs2(self):
@@ -246,6 +256,10 @@ class Traff_Analy():
 
         tabControl.pack(expand = 1, fill ="both") 
 
+        cat_tab = ttk.Frame(tabControl)
+        tabControl.add(cat_tab, text ='CATEGORIAS')
+        pdtabulate=lambda df:tabulate(self.df_cat_stat,headers='keys',tablefmt='psql')
+        ttk.Label(cat_tab,text=pdtabulate(self.df_cat_stat),font=('Consolas', 10), justify=LEFT, anchor='nw').grid(sticky='ewns')
         
         print(self.df_dict[self.cat_name[0]])
         i=0
@@ -342,7 +356,7 @@ class Traff_Analy():
         root.mainloop()
 
 
-    """
+    
     def main(self):
         #traff = Traff_Analy()
 
@@ -352,10 +366,10 @@ class Traff_Analy():
         self.print_table()
         #self.plot_graphs_barh()
         self.plot_graphs()
-        
-        self.win_table()
+        self.win_tabs()
+        #self.win_table()
         #self.plot_graphs2()
-    """
+"""
 def main():
     traff = Traff_Analy()
 
@@ -368,7 +382,7 @@ def main():
     traff.win_tabs()    
     #traff.win_scroll()
     #traff.plot_graphs2()
-
+"""
 
 if __name__ == '__main__':
     main() 
