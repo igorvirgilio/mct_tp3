@@ -24,6 +24,11 @@ class Traff_Analy():
 
 
     def capture(self):
+        """
+        Função abre filedialog para escolher o arquivo de 
+        captura que será utilizado. É definido que os formatos
+        .pcap e .pcapng serão os formatos padrões
+        """
         filetypes=(("Capturas", "*.pcap .pcapng"), ("All files", "*.*")) 
         cap_file = fd.askopenfilename(filetypes=filetypes)
         print(cap_file)
@@ -40,6 +45,15 @@ class Traff_Analy():
 
 
     def filtering(self):
+        """
+        Função faz o primeiro tratamento dos dados,
+        selecionando as colunas mais significantes para 
+        esta análise
+
+        É também atribuído os valores de certas colunas do
+        DataFrame Pandas para listas para que possam ser 
+        manipuladas.
+        """
         self.cat_name = self.data['category_name'].unique()
         self.app_name = self.data['application_name'].unique()
         self.app_prot = self.data['app_protocol'].unique()
@@ -73,18 +87,21 @@ class Traff_Analy():
         print('Total de pacotes da captura: '+str(total_bi_packets))
         print('Total de fluxos da captura: '+str(total_flows))
 
+        # Agrupa em os dados do dataframe original baseados na coluna 'category_name'
         data_grouped = self.data.groupby(self.data_short.category_name)
         
         # Cria novo dicionario com a estrutuda do novo DataFrame
         data_cat = {'categoria':[],'total_bytes':[],'(%) do total':[],'Applicações':[],'# of Apps':[],'Most used server':[],} 
         self.df_cat_stat = pd.DataFrame(data_cat) # converte em DF pandas
         
-
+        # Adiciona o 
         columns = list(self.df_cat_stat)
         data_dict = []
 
         i=0
+        """Separação dos DataFrame em multiplos DataFrames por categoria""" 
         for x in self.cat_name:
+            
             group_x = data_grouped.get_group(str(self.cat_name[i]))
             group_x_name = group_x.iloc[0]['category_name']
                       
@@ -183,57 +200,15 @@ class Traff_Analy():
         
         labels = df_graph['categoria'].to_list()
         sizes = df_graph['total_bytes'].to_list()
-        
-
 
         # Plot
         plt.pie(sizes, labels=labels, #xplode=0.1, #colors=colors,
         autopct='%1.1f%%', shadow=True, startangle=140)
-        
-        #patches, texts = plt.pie(sizes, shadow=True, startangle=90)
-        #plt.legend(patches, labels, loc="best")
-        #plt.tight_layout()
 
         plt.axis('equal')
         plt.title('TP - MCT / Category Graph')
         plt.show()
 
-    def plot_graphs2(self):
-        fig, ax = plt.subplots(figsize=(6, 3), subplot_kw=dict(aspect="equal"))
-
-        recipe = self.df_cat_stat['categoria'].to_list()
-
-        data = self.df_cat_stat['total_bytes'].to_list()
-
-        wedges, texts = ax.pie(data, wedgeprops=dict(width=0.5), startangle=-40)
-
-        bbox_props = dict(boxstyle="square,pad=0.3", fc="w", ec="k", lw=0.72)
-        kw = dict(arrowprops=dict(arrowstyle="-"),
-                bbox=bbox_props, zorder=0, va="center")
-
-        for i, p in enumerate(wedges):
-            ang = (p.theta2 - p.theta1)/2. + p.theta1
-            y = np.sin(np.deg2rad(ang))
-            x = np.cos(np.deg2rad(ang))
-            horizontalalignment = {-1: "right", 1: "left"}[int(np.sign(x))]
-            connectionstyle = "angle,angleA=0,angleB={}".format(ang)
-            kw["arrowprops"].update({"connectionstyle": connectionstyle})
-            ax.annotate(recipe[i], xy=(x, y), xytext=(1.35*np.sign(x), 1.4*y),
-                        horizontalalignment=horizontalalignment, **kw)
-
-        ax.set_title("Matplotlib bakery: A donut")
-
-        plt.show(block=FALSE)   
-    
-    def plot_graphs_barh(self):
-        labels = self.df_cat_stat['categoria'].to_list()
-        sizes = self.df_cat_stat['%% do total'].to_list()
-
-        df = pd.DataFrame({'Total Bytes': sizes}, index=labels)
-        ax = df.plot.barh(y='Total Bytes')
-
-        plt.show(block=FALSE) 
-    
     def win_table(self):
         win = Tk()
         win.title('TP - QOS / Full Category Table')
@@ -247,7 +222,12 @@ class Traff_Analy():
         win.mainloop()
 
     def win_tabs(self):
-
+        """ 
+        Função para criar uma janela com abas, sendo a primeira com o
+        resumo das categorias que foram identificadas na captura e
+        as demais aba com as respetivas categorias com seus respetivos 
+        detalhes
+        """
         root = tk.Tk() 
         root.title("Relatório resumo - Categorias") 
         tabControl = ttk.Notebook(root) 
@@ -256,12 +236,12 @@ class Traff_Analy():
 
         tabControl.pack(expand = 1, fill ="both") 
 
+        # Cria a primeira aba resumo
         cat_tab = ttk.Frame(tabControl)
         tabControl.add(cat_tab, text ='CATEGORIAS')
         pdtabulate=lambda df:tabulate(self.df_cat_stat,headers='keys',tablefmt='psql')
         ttk.Label(cat_tab,text=pdtabulate(self.df_cat_stat),font=('Consolas', 10), justify=LEFT, anchor='nw').grid(sticky='ewns')
         
-        print(self.df_dict[self.cat_name[0]])
         i=0
         for x in range(len(self.cat_name)):
             
@@ -354,21 +334,17 @@ class Traff_Analy():
         xscrollbar.pack(side="bottom", fill="x")
 
         root.mainloop()
-
-
     
     def main(self):
-        #traff = Traff_Analy()
 
         self.capture()
         self.filtering()
         self.statistic()
-        self.print_table()
-        #self.plot_graphs_barh()
+        #self.print_table()
         self.plot_graphs()
         self.win_tabs()
         #self.win_table()
-        #self.plot_graphs2()
+
 """
 def main():
     traff = Traff_Analy()
