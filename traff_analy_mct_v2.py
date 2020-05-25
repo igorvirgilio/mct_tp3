@@ -62,7 +62,7 @@ class Traff_Analy():
                                             'bidirectional_ip_bytes','bidirectional_packets',
                                             #'src2dst_ip_bytes','dst2src_ip_bytes','app_protocol',
                                             #'protocol',#'client_info',
-                                            'server_info',
+                                            'server_info','client_info',
                                             #'bidirectional_duration_ms',
                                             'app_protocol','application_name','category_name',
                                             ]]
@@ -70,7 +70,8 @@ class Traff_Analy():
         self.data_short.index.name = 'Flow'
         self.data_short.rename(columns={'src_ip':'Source IP','dst_ip':'Destin. IP',
                                         'src_port':'Src Port','dst_port':'Dst Port',
-                                        'bidirectional_ip_bytes':'Total Bytes','server_info':'Servers info',
+                                        'bidirectional_ip_bytes':'Total Bytes',
+                                        'client_info':'Client info','server_info':'Servers info',
                                         'bidirectional_packets':'Total Packets'}, inplace = True)
 
         # cria vários um dicionario com todas as tabelas separadas pela list criada em cat_name
@@ -149,7 +150,6 @@ class Traff_Analy():
         self.df_cat_stat = self.df_cat_stat.append(data_dict, True).sort_values(by='total_bytes', ascending=False)
         
 
-    
     def print_table(self):
         i = 0
         
@@ -209,19 +209,9 @@ class Traff_Analy():
         plt.title('TP - MCT / Category Graph')
         plt.show()
 
-    def win_table(self):
-        win = Tk()
-        win.title('TP - QOS / Full Category Table')
-        
-        pdtabulate=lambda df:tabulate(self.df_cat_stat.set_index('categoria'),headers='keys',tablefmt='psql')
 
-        print(pdtabulate(self.df_cat_stat))
+    def win_tabs_scroll(self):
 
-        table1 = Label(win, text=pdtabulate(self.df_cat_stat),font=('Consolas', 10), justify=LEFT, anchor='nw').grid(sticky='ewns')    
-        #table2 = Label(win, text=self.df_cat_stat['total_bytes']).grid(column=1, row=0)
-        win.mainloop()
-
-    def win_tabs(self):
         """ 
         Função para criar uma janela com abas, sendo a primeira com o
         resumo das categorias que foram identificadas na captura e
@@ -238,102 +228,54 @@ class Traff_Analy():
 
         # Cria a primeira aba resumo
         cat_tab = ttk.Frame(tabControl)
+        h = Scrollbar(cat_tab, orient = 'horizontal')
+        h.pack(side = BOTTOM, fill = X)
+        v = Scrollbar(cat_tab)
+        v.pack(side = RIGHT, fill = Y)
+
         tabControl.add(cat_tab, text ='CATEGORIAS')
         pdtabulate=lambda df:tabulate(self.df_cat_stat,headers='keys',tablefmt='psql')
-        ttk.Label(cat_tab,text=pdtabulate(self.df_cat_stat),font=('Consolas', 10), justify=LEFT, anchor='nw').grid(sticky='ewns')
+        #ttk.Label(cat_tab,text=pdtabulate(self.df_cat_stat),font=('Consolas', 10), justify=LEFT, anchor='nw').grid(sticky='ewns')
+        t1 = Text(cat_tab,width = 300, height = 100, wrap = NONE,
+                xscrollcommand = h.set,  
+                yscrollcommand = v.set)
+        t1.insert(END,pdtabulate(self.df_cat_stat))
+        t1.pack(side=TOP, fill=X)
+        h.config(command=t1.xview)
+        v.config(command=t1.yview)
+        
         
         i=0
         for x in range(len(self.cat_name)):
             
             globals()[self.cat_name[i]] = ttk.Frame(tabControl)
             #tab2 = ttk.Frame(tabControl)
+            h = Scrollbar(globals()[self.cat_name[i]], orient = 'horizontal')
+            h.pack(side = BOTTOM, fill = X)
+            v = Scrollbar(globals()[self.cat_name[i]])
+            v.pack(side = RIGHT, fill = Y)
+
             tabControl.add(globals()[self.cat_name[i]], text =self.cat_name[i])
             pdtabulate=lambda df:tabulate(self.df_dict[self.cat_name[i]],headers='keys',tablefmt='psql')
-            ttk.Label(globals()[self.cat_name[i]],text=pdtabulate(self.df_dict[self.cat_name[i]]),font=('Consolas', 10), justify=LEFT, anchor='nw').grid(sticky='ewns')
+            globals()["t" + str(i)] = Text(globals()[self.cat_name[i]],width = 300, height = 100, wrap = NONE,xscrollcommand = h.set,yscrollcommand = v.set)
+            
+            globals()["t" + str(i)].insert(END, pdtabulate(self.df_dict[self.cat_name[i]]))#,
+                                    #font=('Consolas', 10), justify=LEFT, anchor='nw',
+                                    #xscrollcommand = h.set,
+                                    #yscrollcommand = v.set)#.grid(sticky='ewns')
+            globals()["t" + str(i)].pack(side=TOP, fill=X)
+            h.config(command=globals()["t" + str(i)].xview)
+            v.config(command=globals()["t" + str(i)].yview)
+                         
+            #ttk.Label(globals()[self.cat_name[i]],text=pdtabulate(self.df_dict[self.cat_name[i]]),
+            #                                    font=('Consolas', 10), justify=LEFT, anchor='nw').grid(sticky='ewns')
+                                                #xscrollcommand = h.set,
+                                                #yscrollcommand = v.set)#.grid(sticky='ewns')
+            
             i += 1
 
         root.mainloop()
 
-    def win_tabs_scroll(self):
-
-        root = tk.Tk() 
-        root.title("Relatório resumo - Categorias") 
-         
-        
-        container = ttk.Frame(root) ####
-        canvas = tk.Canvas(container) #### 
-        scrollable_frame = ttk.Frame(canvas)      
-        tabControl = ttk.Notebook(scrollable_frame)
-
-        yscrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview) ####
-        xscrollbar = ttk.Scrollbar(container, orient="horizontal", command=canvas.xview) ####
-
-        num_of_tabs = len(self.cat_name)
-
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(
-                scrollregion=canvas.bbox("all")
-            )
-        )
-
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=yscrollbar.set)
-        canvas.configure(xscrollcommand=xscrollbar.set)
-
-        tab1 = ttk.Frame(tabControl)
-        #canvas = tk.Canvas(tab1)        ######
-        #scrollable_frame = ttk.Frame(canvas)       #####
-        tabControl.add(tab1, text ='Tab 1') 
-        pdtabulate=lambda df:tabulate(self.df_cat_stat.set_index('categoria'),headers='keys',tablefmt='psql')
-        ttk.Label(tab1,text=pdtabulate(self.df_cat_stat),font=('Consolas', 10), justify=LEFT, anchor='nw').grid(sticky='ewns') 
-        
-        print(self.df_dict[self.cat_name[0]])
-        tab2 = ttk.Frame(tabControl)
-        tabControl.add(tab2, text =self.cat_name[0])
-        pdtabulate=lambda df:tabulate(self.df_dict[self.cat_name[0]],headers='keys',tablefmt='psql')
-        ttk.Label(scrollable_frame, text=pdtabulate(self.df_dict[self.cat_name[0]]),font=('Consolas', 10), justify=LEFT, anchor='nw').grid(sticky='ewns')
-        ttk.Label(tab2, text=pdtabulate(self.df_dict[self.cat_name[0]]),font=('Consolas', 10), justify=LEFT, anchor='nw').grid(sticky='ewns')
-
-        tab3 = ttk.Frame(tabControl)
-        tabControl.add(tab3, text ='Tab 3')
-        ttk.Label(tab3,                 text =len(self.cat_name)).grid(column = 0, 
-                                            row = 0, 
-                                            padx = 30, 
-                                            pady = 30) 
-
-        tabControl.pack(expand = 1, fill ="both") 
-
-        root.mainloop()
-
-    def win_scroll(self):
-        root = tk.Tk() ####
-        container = ttk.Frame(root) ####
-        canvas = tk.Canvas(container) ####
-        yscrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview) ####
-        xscrollbar = ttk.Scrollbar(container, orient="horizontal", command=canvas.xview) ####
-        scrollable_frame = ttk.Frame(canvas)
-        
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(
-                scrollregion=canvas.bbox("all")
-            )
-        )
-
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=yscrollbar.set)
-        canvas.configure(xscrollcommand=xscrollbar.set)
-
-        pdtabulate=lambda df:tabulate(self.df_dict[self.cat_name[0]],headers='keys',tablefmt='psql')
-        ttk.Label(scrollable_frame, text=pdtabulate(self.df_dict[self.cat_name[0]]),font=('Consolas', 10), justify=LEFT, anchor='nw').grid(sticky='ewns')
-
-        container.pack(expand = 1, fill ="both")
-        canvas.pack(side="left", fill="both", expand=True)
-        yscrollbar.pack(side="right", fill="y")
-        xscrollbar.pack(side="bottom", fill="x")
-
-        root.mainloop()
     
     def main(self):
 
@@ -342,8 +284,8 @@ class Traff_Analy():
         self.statistic()
         #self.print_table()
         self.plot_graphs()
-        self.win_tabs()
-        #self.win_table()
+        self.win_tabs_scroll()
+        
 
 """
 def main():
